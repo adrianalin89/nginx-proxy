@@ -48,6 +48,8 @@ services:
         restart: unless-stopped
         ports:
           - "1080:1080"
+        networks:
+          - mail-catcher-network
 
     opensearch:
         container_name: opensearch
@@ -55,9 +57,9 @@ services:
           dockerfile: Dockerfile
           context: images/opensearch
         restart: unless-stopped
-        ports:
-          - "9200"
-          - "9300"
+        #ports:
+        #  - "9200"
+        #  - "9300"
         env_file: env/opensearch.env
         environment:
           - "discovery.type=single-node"
@@ -65,6 +67,8 @@ services:
           - "index.blocks.read_only_allow_delete"
           - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
           #- "max_map_count=262144"
+        networks:
+          - open-search-network
 
     phpmyadmin:
         container_name: phpmyadmin
@@ -80,4 +84,8 @@ networks:
         external: true
         name: nginx-proxy
     shared-db-network:
+        external: true
+    mail-catcher-network:
+        external: true
+    open-search-network:
         external: true
