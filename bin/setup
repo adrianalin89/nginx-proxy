@@ -10,25 +10,30 @@ GROUP_ID=$(id -g)
 # Replace USER_ID and GROUP_ID in .env
 sed -i "s/^USER_ID=.*/USER_ID=${USER_ID}/" .env
 sed -i "s/^GROUP_ID=.*/GROUP_ID=${GROUP_ID}/" .env
+echo "Replacing USER_ID and GROUP_ID in .env"
 
 # Check if the Docker network exists, create if it doesn't
 NETWORK_NAME="nginx-proxy"
 if ! docker network ls | grep -q "${NETWORK_NAME}"; then
+  echo "Creating Docker network: ${NETWORK_NAME}"
   docker network create "${NETWORK_NAME}"
 fi
 
 NETWORK_NAME="shared-db-network"
 if ! docker network ls | grep -q "${NETWORK_NAME}"; then
+  echo "Creating Docker network: ${NETWORK_NAME}"
   docker network create "${NETWORK_NAME}"
 fi
 
 NETWORK_NAME="mail-catcher-network"
 if ! docker network ls | grep -q "${NETWORK_NAME}"; then
+  echo "Creating Docker network: ${NETWORK_NAME}"
   docker network create "${NETWORK_NAME}"
 fi
 
 NETWORK_NAME="open-search-network"
 if ! docker network ls | grep -q "${NETWORK_NAME}"; then
+  echo "Creating Docker network: ${NETWORK_NAME}"
   docker network create "${NETWORK_NAME}"
 fi
 
