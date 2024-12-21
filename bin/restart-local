@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-set -o errexit
-
-bin/docker-compose -f docker-compose_local.yml restart "${@:2}"

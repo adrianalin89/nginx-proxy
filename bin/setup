@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+# Copy .env.example to .env if .env does not exist
+[ ! -f .env ] && cp .env.example .env
+
+# Get user and group ID
+USER_ID=$(id -u)
+GROUP_ID=$(id -g)
+
+# Replace USER_ID and GROUP_ID in .env
+sed -i "s/^USER_ID=.*/USER_ID=${USER_ID}/" .env
+sed -i "s/^GROUP_ID=.*/GROUP_ID=${GROUP_ID}/" .env
+
+# Check if the Docker network exists, create if it doesn't
+NETWORK_NAME="nginx-proxy"
+if ! docker network ls | grep -q "${NETWORK_NAME}"; then
+  docker network create "${NETWORK_NAME}"
+fi
+
+NETWORK_NAME="shared-db-network"
+if ! docker network ls | grep -q "${NETWORK_NAME}"; then
+  docker network create "${NETWORK_NAME}"
+fi
+
+NETWORK_NAME="mail-catcher-network"
+if ! docker network ls | grep -q "${NETWORK_NAME}"; then
+  docker network create "${NETWORK_NAME}"
+fi
+
+NETWORK_NAME="open-search-network"
+if ! docker network ls | grep -q "${NETWORK_NAME}"; then
+  docker network create "${NETWORK_NAME}"
+fi
+
+
+# Print instructions to run the start command
+echo "Run the following command to start the containers:"
+echo "./bin/start"

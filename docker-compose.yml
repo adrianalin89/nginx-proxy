@@ -1,11 +1,10 @@
-version: '3.9'
 services:
-    nginx-proxy:
-        image: nginxproxy/nginx-proxy
-        container_name: nginx-proxy
-        restart: always
+    proxy-nginx-proxy:
+        container_name: proxy-nginx-proxy
+        image: nginxproxy/nginx-proxy:${NGINX_PROXY_VERSION}
+        restart: unless-stopped
         environment:
-            ENABLE_IPV6: 1
+            ENABLE_IPV6: 'true'
         ports:
             - "80:80"
             - "443:443"
@@ -17,12 +16,12 @@ services:
             - ./certs:/etc/nginx/certs:ro
             - /var/run/docker.sock:/tmp/docker.sock:ro
 
-    nginx-proxy-acme:
-        image: nginxproxy/acme-companion
-        container_name: nginx-proxy-acme
-        restart: always
-        links:
-            - nginx-proxy
+    proxy-acme-companion:
+        container_name: proxy-acme-companion
+        image: nginxproxy/acme-companion:${ACME_COMPANION_VERSION}
+        restart: unless-stopped
+        depends_on:
+            - proxy-nginx-proxy
         volumes:
             - ./vhost:/etc/nginx/vhost.d
             - ./html:/usr/share/nginx/html
@@ -30,9 +29,71 @@ services:
             - ./certs:/etc/nginx/certs:rw
             - /var/run/docker.sock:/var/run/docker.sock:ro
         environment:
-            NGINX_PROXY_CONTAINER: nginx-proxy
+            NGINX_PROXY_CONTAINER: proxy-nginx-proxy
+            FILES_UID: ${USER_ID}
+            FILES_GID: ${GROUP_ID}
+            FILES_PERMS: 644
+        profiles:
+            - acme
+
+    proxy-self-signed-companion:
+        container_name: proxy-self-signed-companion
+        image: sebastienheyd/self-signed-proxy-companion:${SELF_SIGNED_VERSION}
+        restart: unless-stopped
+        depends_on:
+            - proxy-nginx-proxy
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - ./certs:/etc/nginx/certs:rw
+        environment:
+            NGINX_PROXY_CONTAINER: proxy-nginx-proxy
+        profiles:
+            - self-signed
+
+    mailcatcher:
+        container_name: mailcatcher
+        image: sj26/mailcatcher
+        restart: unless-stopped
+        ports:
+            - "1080:1080"
+        networks:
+            - mail-catcher-network
+
+    opensearch:
+        container_name: opensearch
+        build:
+            dockerfile: Dockerfile
+            context: images/opensearch
+        restart: unless-stopped
+        #ports:
+        #  - "9200"
+        #  - "9300"
+        env_file: env/opensearch.env
+        environment:
+            - "discovery.type=single-node"
+            - "cluster.routing.allocation.disk.threshold_enabled=false"
+            - "index.blocks.read_only_allow_delete"
+            - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
+            #- "max_map_count=262144"
+        networks:
+            - open-search-network
+
+    phpmyadmin:
+        container_name: phpmyadmin
+        image: linuxserver/phpmyadmin
+        env_file: env/phpmyadmin.env
+        ports:
+            - "8080:80"
+        networks:
+            - shared-db-network
 
 networks:
     default:
         external: true
         name: nginx-proxy
+    shared-db-network:
+        external: true
+    mail-catcher-network:
+        external: true
+    open-search-network:
+        external: true
