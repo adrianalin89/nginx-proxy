@@ -16,6 +16,7 @@ This repo also includes:
  - [self-signed-companion](https://github.com/sebastienheyd/docker-self-signed-proxy-companion)
  - [mailcatcher](https://github.com/sj26/mailcatcher)
  - [opensearch](https://github.com/opensearch-project)
+ - [elasticsearch](https://github.com/elastic/elasticsearch)
  - [phpmyadmin](https://github.com/phpmyadmin/phpmyadmin)
 
 Still to come:

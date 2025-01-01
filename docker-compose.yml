@@ -78,6 +78,26 @@ services:
         networks:
             - open-search-network
 
+    elasticsearch:
+        container_name: elasticsearch
+        build:
+            dockerfile: Dockerfile
+            context: images/elasticsearch
+        #ports:
+        #    - "9200:9200"
+        #    - "9300:9300"
+        env_file: env/elasticsearch.env
+        environment:
+            - "discovery.type=single-node"
+            ## Set custom heap size to avoid memory errors
+            - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+            ## Avoid test failures due to small disks
+            ## More info at https://github.com/markshust/docker-magento/issues/488
+            - "cluster.routing.allocation.disk.threshold_enabled=false"
+            - "index.blocks.read_only_allow_delete"
+        networks:
+            - elastic-search-network
+
     phpmyadmin:
         container_name: phpmyadmin
         image: linuxserver/phpmyadmin
@@ -96,4 +116,6 @@ networks:
     mail-catcher-network:
         external: true
     open-search-network:
+        external: true
+    elastic-search-network:
         external: true

@@ -37,6 +37,12 @@ if ! docker network ls | grep -q "${NETWORK_NAME}"; then
   docker network create "${NETWORK_NAME}"
 fi
 
+NETWORK_NAME="elastic-search-network"
+if ! docker network ls | grep -q "${NETWORK_NAME}"; then
+  echo "Creating Docker network: ${NETWORK_NAME}"
+  docker network create "${NETWORK_NAME}"
+fi
+
 
 # Print instructions to run the start command
 echo "Run the following command to start the containers:"

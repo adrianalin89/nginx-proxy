@@ -22,7 +22,7 @@ help:
 	@echo "$(call format,root,'Run any CLI command as root without going into the bash prompt.')"
 	@echo "$(call format,bash,'Drop into the bash prompt of your Docker container.')"
 	@echo "$(call format,cli,'Run any CLI command without going into the bash prompt.')"
-	@echo "$(call format,docker-compose,'Support V1 (`docker-compose`) and V2 (`docker compose`) docker compose command, and use custom configuration files.')"
+	@echo "$(call format,docker-compose,'Support V1 (docker-compose) and V2 (docker compose) docker compose command$(comma) and use custom configuration files.')"
 	@echo "$(call format,docker-stats,'Display status for CPU$(comma) memory usage$(comma) and memory limit of currently-running Docker containers.')"
 	@echo "$(call format,log,'Monitor the log files. Pass no params to tail all files.')"
 	@echo "$(call format,restart,'Stop and then start all containers.')"
