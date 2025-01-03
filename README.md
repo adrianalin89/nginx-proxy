@@ -18,9 +18,9 @@ This repo also includes:
  - [opensearch](https://github.com/opensearch-project)
  - [elasticsearch](https://github.com/elastic/elasticsearch)
  - [phpmyadmin](https://github.com/phpmyadmin/phpmyadmin)
+ - [portainer](https://github.com/portainer/portainer)
 
 Still to come:
- - [portainer](https://github.com/portainer/portainer)
  - [traefik](https://github.com/traefik/traefik)
  - [minio](https://github.com/minio/minio)
  - [cloudflare-companion](https://github.com/tiredofit/docker-nginx-proxy-cloudflare-companion)
