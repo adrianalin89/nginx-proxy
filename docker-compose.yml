@@ -101,6 +101,7 @@ services:
     phpmyadmin:
         container_name: phpmyadmin
         image: linuxserver/phpmyadmin
+        restart: unless-stopped
         env_file: env/phpmyadmin.env
         ports:
             - "8080:80"
