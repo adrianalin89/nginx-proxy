@@ -83,6 +83,7 @@ services:
         build:
             dockerfile: Dockerfile
             context: images/elasticsearch
+        restart: unless-stopped
         #ports:
         #    - "9200:9200"
         #    - "9300:9300"
