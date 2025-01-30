@@ -174,6 +174,18 @@ where you want to use certs.
 
 Please check the [docs section](https://github.com/nginx-proxy/nginx-proxy/tree/main/docs).
 
+### Email / Mailcatcher
+
+View emails sent locally through Mailcatcher by visiting [http://{yourdomain}:1080](http://{yourdomain}:1080). In order to use mailcatcher, set the mailserver host to `mailcatcher` and set port to `1025`. Note that this port (`1025`) is different from the mailcatcher interface to read the emails (`1080`).
+
+Alternative tools to test emails and get some metrics: [mailtrap](https://mailtrap.io/)
+
+### PhpMyAdmin
+
+PhpMyAdmin is built into the project file. Simply open `http://localhost:8080` in a web browser.
+
+These credentials can be used to log in to PhpMyAdmin are specified in each project .env file.
+
 ### Troubleshooting
 - **Error: SSL certificate not working**  
   Check if `COMPOSE_PROFILES` is set correctly in the `.env` file.
