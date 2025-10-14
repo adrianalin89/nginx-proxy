@@ -15,6 +15,7 @@ services:
             - ./dhparam:/etc/nginx/dhparam
             - ./certs:/etc/nginx/certs:ro
             - /var/run/docker.sock:/tmp/docker.sock:ro
+            - ./htpasswd:/etc/nginx/htpasswd:ro  #Remove for local env
 
     proxy-acme-companion:
         container_name: proxy-acme-companion
@@ -54,10 +55,17 @@ services:
         container_name: mailcatcher
         image: sj26/mailcatcher
         restart: unless-stopped
-        ports:
-            - "1080:1080"
+        environment:
+            VIRTUAL_HOST: "mail.test"
+            VIRTUAL_PORT: "1080"
+            SELF_SIGNED_HOST: "mail.test"
+            LETSENCRYPT_HOST: "mail.test"
+            LETSENCRYPT_EMAIL: "admin@mail.test"
         networks:
+            - default
             - mail-catcher-network
+        depends_on:
+            - proxy-nginx-proxy
 
     opensearch:
         container_name: opensearch
@@ -65,48 +73,50 @@ services:
             dockerfile: Dockerfile
             context: images/opensearch
         restart: unless-stopped
-        #ports:
-        #  - "9200"
-        #  - "9300"
         env_file: env/opensearch.env
         environment:
             - "discovery.type=single-node"
             - "cluster.routing.allocation.disk.threshold_enabled=false"
             - "index.blocks.read_only_allow_delete"
             - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
-            #- "max_map_count=262144"
+            - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=magento"
         networks:
             - open-search-network
-
-    elasticsearch:
-        container_name: elasticsearch
-        build:
-            dockerfile: Dockerfile
-            context: images/elasticsearch
+            
+    opensearch-dashboards:
+        image: opensearchproject/opensearch-dashboards:2.5.0
+        container_name: opensearch-dashboards
         restart: unless-stopped
-        #ports:
-        #    - "9200:9200"
-        #    - "9300:9300"
-        env_file: env/elasticsearch.env
         environment:
-            - "discovery.type=single-node"
-            ## Set custom heap size to avoid memory errors
-            - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
-            ## Avoid test failures due to small disks
-            ## More info at https://github.com/markshust/docker-magento/issues/488
-            - "cluster.routing.allocation.disk.threshold_enabled=false"
-            - "index.blocks.read_only_allow_delete"
+            OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+            DISABLE_SECURITY_DASHBOARDS_PLUGIN: 'true'
+            VIRTUAL_HOST: "search.test"
+            VIRTUAL_PORT: "5601"
+            SELF_SIGNED_HOST: "search.test"
+            LETSENCRYPT_HOST: "search.test"
+            LETSENCRYPT_EMAIL: "admin@.test"
         networks:
-            - elastic-search-network
+            - default
+            - open-search-network
+        depends_on:
+            - proxy-nginx-proxy
+            - opensearch
 
     phpmyadmin:
         container_name: phpmyadmin
         image: linuxserver/phpmyadmin
         restart: unless-stopped
         env_file: env/phpmyadmin.env
-        ports:
-            - "8080:80"
+        environment:
+            VIRTUAL_HOST: "db.test"
+            VIRTUAL_PORT: "80"
+            SELF_SIGNED_HOST: "db.test"
+            LETSENCRYPT_HOST: "db.test"
+            LETSENCRYPT_EMAIL: "admin@db.test"
+        depends_on:
+            - proxy-nginx-proxy
         networks:
+            - default
             - shared-db-network
 
     portainer:
@@ -115,16 +125,43 @@ services:
         command: -H unix:///var/run/docker.sock
         restart: always
         environment:
-            - VIRTUAL_HOST=portainer.test
-            - VIRTUAL_PORT=9000
-        ports:
-            - "8000:8000"
+            VIRTUAL_HOST: "portainer.test"
+            VIRTUAL_PORT: "9000"
+            SELF_SIGNED_HOST: "portainer.test"
+            LETSENCRYPT_HOST: "portainer.test"
+            LETSENCRYPT_EMAIL: "admin@portainer.test"
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
             - portainer_data:/data
 
+    rabbitmq:
+        container_name: rabbitmq
+        image: rabbitmq:4.1-management-alpine
+        restart: unless-stopped
+        environment:
+            RABBITMQ_DEFAULT_USER: "admin"
+            RABBITMQ_DEFAULT_PASS: "rabbitmq"
+            RABBITMQ_DEFAULT_VHOST: "/"
+            VIRTUAL_HOST: "rabbitmq.test"
+            VIRTUAL_PORT: "15672"
+            VIRTUAL_PROTO: "http"
+            RABBITMQ_MANAGEMENT_PORT: "15672"
+            SELF_SIGNED_HOST: "rabbitmq.test"
+            LETSENCRYPT_HOST: "rabbitmq.test"
+            LETSENCRYPT_EMAIL: "admin@rabbitmq.test"
+        ports:
+            - "5672"
+        volumes:
+            - rabbitmqdata:/var/lib/rabbitmq
+        depends_on:
+            - proxy-nginx-proxy
+        networks:
+            - default
+            - rabbitmq-network
+
 volumes:
     portainer_data:
+    rabbitmqdata:
 
 networks:
     default:
@@ -135,6 +172,6 @@ networks:
     mail-catcher-network:
         external: true
     open-search-network:
-        external: true
-    elastic-search-network:
+        driver: bridge
+    rabbitmq-network:
         external: true

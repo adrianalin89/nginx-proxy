@@ -37,12 +37,36 @@ if ! docker network ls | grep -q "${NETWORK_NAME}"; then
   docker network create "${NETWORK_NAME}"
 fi
 
-NETWORK_NAME="elastic-search-network"
+NETWORK_NAME="rabbitmq-network"
 if ! docker network ls | grep -q "${NETWORK_NAME}"; then
   echo "Creating Docker network: ${NETWORK_NAME}"
   docker network create "${NETWORK_NAME}"
 fi
 
+if ! grep -q "portainer.test" /etc/hosts; then
+    echo "Your system password is needed to add an entry to /etc/hosts..."
+    echo "127.0.0.1 ::1 portainer.test" | sudo tee -a /etc/hosts
+fi
+
+if ! grep -q "rabbitmq.test" /etc/hosts; then
+    echo "Your system password is needed to add an entry to /etc/hosts..."
+    echo "127.0.0.1 ::1 rabbitmq.test" | sudo tee -a /etc/hosts
+fi
+
+if ! grep -q "search.test" /etc/hosts; then
+    echo "Your system password is needed to add an entry to /etc/hosts..."
+    echo "127.0.0.1 ::1 search.test" | sudo tee -a /etc/hosts
+fi
+
+if ! grep -q "mail.test" /etc/hosts; then
+    echo "Your system password is needed to add an entry to /etc/hosts..."
+    echo "127.0.0.1 ::1 mail.test" | sudo tee -a /etc/hosts
+fi
+
+if ! grep -q "db.test" /etc/hosts; then
+    echo "Your system password is needed to add an entry to /etc/hosts..."
+    echo "127.0.0.1 ::1 db.test" | sudo tee -a /etc/hosts
+fi
 
 # Print instructions to run the start command
 echo "Run the following command to start the containers:"

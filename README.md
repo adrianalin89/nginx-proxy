@@ -207,3 +207,7 @@ If you're stuck or have questions:
 - Option 1: Read the docs until you question your life choices.
 - Option 2: Open an issue and pray someone answers before the next millennium.
 - Option 3: Offer cookies or coffee, and maybe, just maybe, someone will help.
+
+
+
+htpasswd -c ./htpasswd/[foo.bar] [username]   replace [foo.bar] and [username] whit domain and username
