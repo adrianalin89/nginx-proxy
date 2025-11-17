@@ -43,29 +43,29 @@ if ! docker network ls | grep -q "${NETWORK_NAME}"; then
   docker network create "${NETWORK_NAME}"
 fi
 
-if ! grep -q "portainer.test" /etc/hosts; then
+if ! grep -q "${PORTAINER}" /etc/hosts; then
     echo "Your system password is needed to add an entry to /etc/hosts..."
-    echo "127.0.0.1 ::1 portainer.test" | sudo tee -a /etc/hosts
+    echo "127.0.0.1 ::1 ${PORTAINER}" | sudo tee -a /etc/hosts
 fi
 
-if ! grep -q "rabbitmq.test" /etc/hosts; then
+if ! grep -q "${RABBITMQ}" /etc/hosts; then
     echo "Your system password is needed to add an entry to /etc/hosts..."
-    echo "127.0.0.1 ::1 rabbitmq.test" | sudo tee -a /etc/hosts
+    echo "127.0.0.1 ::1 ${RABBITMQ}" | sudo tee -a /etc/hosts
 fi
 
-if ! grep -q "search.test" /etc/hosts; then
+if ! grep -q "${OPENSEARCHD}" /etc/hosts; then
     echo "Your system password is needed to add an entry to /etc/hosts..."
-    echo "127.0.0.1 ::1 search.test" | sudo tee -a /etc/hosts
+    echo "127.0.0.1 ::1 ${OPENSEARCHD}" | sudo tee -a /etc/hosts
 fi
 
-if ! grep -q "mail.test" /etc/hosts; then
+if ! grep -q "${MAILCATCHER}" /etc/hosts; then
     echo "Your system password is needed to add an entry to /etc/hosts..."
-    echo "127.0.0.1 ::1 mail.test" | sudo tee -a /etc/hosts
+    echo "127.0.0.1 ::1 ${MAILCATCHER}" | sudo tee -a /etc/hosts
 fi
 
-if ! grep -q "db.test" /etc/hosts; then
+if ! grep -q "${PHPMYADMIN}" /etc/hosts; then
     echo "Your system password is needed to add an entry to /etc/hosts..."
-    echo "127.0.0.1 ::1 db.test" | sudo tee -a /etc/hosts
+    echo "127.0.0.1 ::1 ${PHPMYADMIN}" | sudo tee -a /etc/hosts
 fi
 
 # Print instructions to run the start command
