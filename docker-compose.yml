@@ -56,11 +56,11 @@ services:
         image: sj26/mailcatcher
         restart: unless-stopped
         environment:
-            VIRTUAL_HOST: "mail.test"
+            VIRTUAL_HOST: ${MAILCATCHER}
             VIRTUAL_PORT: "1080"
-            SELF_SIGNED_HOST: "mail.test"
-            LETSENCRYPT_HOST: "mail.test"
-            LETSENCRYPT_EMAIL: "admin@mail.test"
+            SELF_SIGNED_HOST: ${MAILCATCHER}
+            LETSENCRYPT_HOST: ${MAILCATCHER}
+            LETSENCRYPT_EMAIL: "admin@${MAILCATCHER}"
         networks:
             - default
             - mail-catcher-network
@@ -90,11 +90,11 @@ services:
         environment:
             OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
             DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
-            VIRTUAL_HOST: "search.test"
+            VIRTUAL_HOST: ${OPENSEARCHD}
             VIRTUAL_PORT: "5601"
-            SELF_SIGNED_HOST: "search.test"
-            LETSENCRYPT_HOST: "search.test"
-            LETSENCRYPT_EMAIL: "admin@.test"
+            SELF_SIGNED_HOST: ${OPENSEARCHD}
+            LETSENCRYPT_HOST: ${OPENSEARCHD}
+            LETSENCRYPT_EMAIL: "admin@${OPENSEARCHD}"
         networks:
             - default
             - open-search-network
@@ -108,11 +108,11 @@ services:
         restart: unless-stopped
         env_file: env/phpmyadmin.env
         environment:
-            VIRTUAL_HOST: "db.test"
+            VIRTUAL_HOST: ${PHPMYADMIN}
             VIRTUAL_PORT: "80"
-            SELF_SIGNED_HOST: "db.test"
-            LETSENCRYPT_HOST: "db.test"
-            LETSENCRYPT_EMAIL: "admin@db.test"
+            SELF_SIGNED_HOST: ${PHPMYADMIN}
+            LETSENCRYPT_HOST: ${PHPMYADMIN}
+            LETSENCRYPT_EMAIL: "admin@${PHPMYADMIN}"
         depends_on:
             - proxy-nginx-proxy
         networks:
@@ -125,11 +125,11 @@ services:
         command: -H unix:///var/run/docker.sock
         restart: always
         environment:
-            VIRTUAL_HOST: "portainer.test"
+            VIRTUAL_HOST: ${PORTAINER}
             VIRTUAL_PORT: "9000"
-            SELF_SIGNED_HOST: "portainer.test"
-            LETSENCRYPT_HOST: "portainer.test"
-            LETSENCRYPT_EMAIL: "admin@portainer.test"
+            SELF_SIGNED_HOST: ${PORTAINER}
+            LETSENCRYPT_HOST: ${PORTAINER}
+            LETSENCRYPT_EMAIL: "admin@${PORTAINER}"
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
             - portainer_data:/data
@@ -142,15 +142,15 @@ services:
             RABBITMQ_DEFAULT_USER: "admin"
             RABBITMQ_DEFAULT_PASS: "rabbitmq"
             RABBITMQ_DEFAULT_VHOST: "/"
-            VIRTUAL_HOST: "rabbitmq.test"
+            VIRTUAL_HOST: ${RABBITMQ}
             VIRTUAL_PORT: "15672"
             VIRTUAL_PROTO: "http"
             RABBITMQ_MANAGEMENT_PORT: "15672"
-            SELF_SIGNED_HOST: "rabbitmq.test"
-            LETSENCRYPT_HOST: "rabbitmq.test"
-            LETSENCRYPT_EMAIL: "admin@rabbitmq.test"
+            SELF_SIGNED_HOST: ${RABBITMQ}
+            LETSENCRYPT_HOST: ${RABBITMQ}
+            LETSENCRYPT_EMAIL: "admin@${RABBITMQ}"
         ports:
-            - "5672"
+            - "5672:5672"
         volumes:
             - rabbitmqdata:/var/lib/rabbitmq
         depends_on:
