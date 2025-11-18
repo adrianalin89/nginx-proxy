@@ -11,7 +11,7 @@ GROUP_ID=$(id -g)
 sed -i "s/^USER_ID=.*/USER_ID=${USER_ID}/" .env
 sed -i "s/^GROUP_ID=.*/GROUP_ID=${GROUP_ID}/" .env
 echo "Replacing USER_ID and GROUP_ID in .env"
-
+source .env
 # Check if the Docker network exists, create if it doesn't
 NETWORK_NAME="nginx-proxy"
 if ! docker network ls | grep -q "${NETWORK_NAME}"; then
