@@ -1,7 +1,16 @@
+# Container logs (docker json-file driver) are rotated so they can't fill the disk.
+# Tune in .env: LOG_MAX_SIZE / LOG_MAX_FILE.
+x-logging: &default-logging
+    driver: json-file
+    options:
+        max-size: "${LOG_MAX_SIZE:-10m}"
+        max-file: "${LOG_MAX_FILE:-3}"
+
 services:
     proxy-nginx-proxy:
         container_name: proxy-nginx-proxy
-        image: nginxproxy/nginx-proxy:${NGINX_PROXY_VERSION}
+        logging: *default-logging
+        image: nginxproxy/nginx-proxy:${NGINX_PROXY_VERSION:-1.7}
         restart: unless-stopped
         environment:
             ENABLE_IPV6: "true"
@@ -19,7 +28,8 @@ services:
 
     proxy-acme-companion:
         container_name: proxy-acme-companion
-        image: nginxproxy/acme-companion:${ACME_COMPANION_VERSION}
+        logging: *default-logging
+        image: nginxproxy/acme-companion:${ACME_COMPANION_VERSION:-latest}
         restart: unless-stopped
         depends_on:
             - proxy-nginx-proxy
@@ -39,7 +49,8 @@ services:
 
     proxy-self-signed-companion:
         container_name: proxy-self-signed-companion
-        image: sebastienheyd/self-signed-proxy-companion:${SELF_SIGNED_VERSION}
+        logging: *default-logging
+        image: sebastienheyd/self-signed-proxy-companion:${SELF_SIGNED_VERSION:-latest}
         restart: unless-stopped
         depends_on:
             - proxy-nginx-proxy
@@ -51,27 +62,49 @@ services:
         profiles:
             - self-signed
 
-    mailcatcher:
-        container_name: mailcatcher
-        image: sj26/mailcatcher
+    # Mailpit catches every email sent by the projects (SMTP mailcatcher:1025),
+    # web UI on ${MAILCATCHER}. The "mailcatcher" alias keeps the projects' msmtp
+    # / SMTP settings working unchanged.
+    mailpit:
+        container_name: mailpit
+        logging: *default-logging
+        image: axllent/mailpit:${MAILPIT_VERSION:-v1.31.6}
         restart: unless-stopped
         environment:
+            MP_DATABASE: /data/mailpit.db
+            MP_MAX_MESSAGES: 5000
+            MP_SMTP_AUTH_ACCEPT_ANY: 1
+            MP_SMTP_AUTH_ALLOW_INSECURE: 1
             VIRTUAL_HOST: ${MAILCATCHER}
-            VIRTUAL_PORT: "1080"
+            VIRTUAL_PORT: "8025"
             SELF_SIGNED_HOST: ${MAILCATCHER}
             LETSENCRYPT_HOST: ${MAILCATCHER}
             LETSENCRYPT_EMAIL: "admin@${MAILCATCHER}"
+        volumes:
+            - mailpitdata:/data
+        healthcheck:
+            test: ["CMD", "/mailpit", "readyz"]
+            interval: 30s
+            timeout: 5s
+            retries: 3
         networks:
-            - default
-            - mail-catcher-network
+            default:
+            mail-catcher-network:
+                aliases:
+                    - mailcatcher
         depends_on:
             - proxy-nginx-proxy
 
     opensearch:
         container_name: opensearch
+        logging: *default-logging
+        # Tagged with the version: changing OPENSEARCH_VERSION builds a new image on the next start
+        image: nginx-proxy-opensearch:${OPENSEARCH_VERSION:-3.9.0}
         build:
             dockerfile: Dockerfile
             context: images/opensearch
+            args:
+                OPENSEARCH_VERSION: ${OPENSEARCH_VERSION:-3.9.0}
         restart: unless-stopped
         env_file: env/opensearch.env
         environment:
@@ -80,31 +113,21 @@ services:
             - "index.blocks.read_only_allow_delete"
             - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
             - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=magento"
+        volumes:
+            - opensearchdata:/usr/share/opensearch/data
+        healthcheck:
+            test: ["CMD-SHELL", "curl -fs http://127.0.0.1:9200/_cluster/health >/dev/null || exit 1"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+            start_period: 90s
         networks:
             - open-search-network
-
-    opensearch-dashboards:
-        image: opensearchproject/opensearch-dashboards:2.5.0
-        container_name: opensearch-dashboards
-        restart: unless-stopped
-        environment:
-            OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
-            DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
-            VIRTUAL_HOST: ${OPENSEARCHD}
-            VIRTUAL_PORT: "5601"
-            SELF_SIGNED_HOST: ${OPENSEARCHD}
-            LETSENCRYPT_HOST: ${OPENSEARCHD}
-            LETSENCRYPT_EMAIL: "admin@${OPENSEARCHD}"
-        networks:
-            - default
-            - open-search-network
-        depends_on:
-            - proxy-nginx-proxy
-            - opensearch
 
     phpmyadmin:
         container_name: phpmyadmin
-        image: linuxserver/phpmyadmin
+        logging: *default-logging
+        image: linuxserver/phpmyadmin:${PHPMYADMIN_VERSION:-latest}
         restart: unless-stopped
         env_file: env/phpmyadmin.env
         environment:
@@ -119,24 +142,10 @@ services:
             - default
             - shared-db-network
 
-    portainer:
-        container_name: portainer
-        image: portainer/portainer-ce:latest
-        command: -H unix:///var/run/docker.sock
-        restart: always
-        environment:
-            VIRTUAL_HOST: ${PORTAINER}
-            VIRTUAL_PORT: "9000"
-            SELF_SIGNED_HOST: ${PORTAINER}
-            LETSENCRYPT_HOST: ${PORTAINER}
-            LETSENCRYPT_EMAIL: "admin@${PORTAINER}"
-        volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
-            - portainer_data:/data
-
     rabbitmq:
         container_name: rabbitmq
-        image: rabbitmq:4.1-management-alpine
+        logging: *default-logging
+        image: rabbitmq:${RABBITMQ_VERSION:-4.1}-management-alpine
         restart: unless-stopped
         environment:
             RABBITMQ_DEFAULT_USER: "admin"
@@ -153,6 +162,12 @@ services:
             - "5672:5672"
         volumes:
             - rabbitmqdata:/var/lib/rabbitmq
+        healthcheck:
+            test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+            start_period: 60s
         depends_on:
             - proxy-nginx-proxy
         networks:
@@ -160,7 +175,8 @@ services:
             - rabbitmq-network
 
 volumes:
-    portainer_data:
+    mailpitdata:
+    opensearchdata:
     rabbitmqdata:
 
 networks:

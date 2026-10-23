@@ -12,61 +12,24 @@ sed -i "s/^USER_ID=.*/USER_ID=${USER_ID}/" .env
 sed -i "s/^GROUP_ID=.*/GROUP_ID=${GROUP_ID}/" .env
 echo "Replacing USER_ID and GROUP_ID in .env"
 source .env
-# Check if the Docker network exists, create if it doesn't
-NETWORK_NAME="nginx-proxy"
-if ! docker network ls | grep -q "${NETWORK_NAME}"; then
-  echo "Creating Docker network: ${NETWORK_NAME}"
-  docker network create "${NETWORK_NAME}"
-fi
+# Shared Docker networks used by the projects (external in their compose files)
+for NETWORK_NAME in nginx-proxy shared-db-network mail-catcher-network open-search-network rabbitmq-network; do
+  # Exact name match (a "grep" on "docker network ls" also matched similar names)
+  if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
+    echo "Creating Docker network: ${NETWORK_NAME}"
+    docker network create "${NETWORK_NAME}"
+  fi
+done
 
-NETWORK_NAME="shared-db-network"
-if ! docker network ls | grep -q "${NETWORK_NAME}"; then
-  echo "Creating Docker network: ${NETWORK_NAME}"
-  docker network create "${NETWORK_NAME}"
-fi
-
-NETWORK_NAME="mail-catcher-network"
-if ! docker network ls | grep -q "${NETWORK_NAME}"; then
-  echo "Creating Docker network: ${NETWORK_NAME}"
-  docker network create "${NETWORK_NAME}"
-fi
-
-NETWORK_NAME="open-search-network"
-if ! docker network ls | grep -q "${NETWORK_NAME}"; then
-  echo "Creating Docker network: ${NETWORK_NAME}"
-  docker network create "${NETWORK_NAME}"
-fi
-
-NETWORK_NAME="rabbitmq-network"
-if ! docker network ls | grep -q "${NETWORK_NAME}"; then
-  echo "Creating Docker network: ${NETWORK_NAME}"
-  docker network create "${NETWORK_NAME}"
-fi
-
-if ! grep -q "${PORTAINER}" /etc/hosts; then
-    echo "Your system password is needed to add an entry to /etc/hosts..."
-    echo "127.0.0.1 ::1 ${PORTAINER}" | sudo tee -a /etc/hosts
-fi
-
-if ! grep -q "${RABBITMQ}" /etc/hosts; then
-    echo "Your system password is needed to add an entry to /etc/hosts..."
-    echo "127.0.0.1 ::1 ${RABBITMQ}" | sudo tee -a /etc/hosts
-fi
-
-if ! grep -q "${OPENSEARCHD}" /etc/hosts; then
-    echo "Your system password is needed to add an entry to /etc/hosts..."
-    echo "127.0.0.1 ::1 ${OPENSEARCHD}" | sudo tee -a /etc/hosts
-fi
-
-if ! grep -q "${MAILCATCHER}" /etc/hosts; then
-    echo "Your system password is needed to add an entry to /etc/hosts..."
-    echo "127.0.0.1 ::1 ${MAILCATCHER}" | sudo tee -a /etc/hosts
-fi
-
-if ! grep -q "${PHPMYADMIN}" /etc/hosts; then
-    echo "Your system password is needed to add an entry to /etc/hosts..."
-    echo "127.0.0.1 ::1 ${PHPMYADMIN}" | sudo tee -a /etc/hosts
-fi
+# Local domains of the shared tools in /etc/hosts
+for DOMAIN in "${RABBITMQ}" "${MAILCATCHER}" "${PHPMYADMIN}"; do
+  [ -z "$DOMAIN" ] && continue
+  # Whole host name match, "db.test" must not match "mydb.test"
+  if ! grep -qE "[[:space:]]${DOMAIN//./\\.}([[:space:]]|$)" /etc/hosts; then
+    echo "Your system password is needed to add ${DOMAIN} to /etc/hosts..."
+    echo "127.0.0.1 ::1 ${DOMAIN}" | sudo tee -a /etc/hosts
+  fi
+done
 
 # Print instructions to run the start command
 echo "Run the following command to start the containers:"

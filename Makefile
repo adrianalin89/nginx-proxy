@@ -21,12 +21,13 @@ help:
 	@echo "$(call red,===============================)"
 	@echo "$(call format,root,'Run any CLI command as root without going into the bash prompt.')"
 	@echo "$(call format,bash,'Drop into the bash prompt of your Docker container.')"
+	@echo "$(call format,cleanup,'Show (--force: remove with y/n per item) unused networks$(comma) dangling images and build cache.')"
 	@echo "$(call format,cli,'Run any CLI command without going into the bash prompt.')"
 	@echo "$(call format,docker-compose,'Support V1 (docker-compose) and V2 (docker compose) docker compose command$(comma) and use custom configuration files.')"
-	@echo "$(call format,docker-stats,'Display status for CPU$(comma) memory usage$(comma) and memory limit of currently-running Docker containers.')"
 	@echo "$(call format,log,'Monitor the log files. Pass no params to tail all files.')"
 	@echo "$(call format,restart,'Stop and then start all containers.')"
 	@echo "$(call format,setup,'Setup the project for the first time.')"
+	@echo "$(call format,sites,'List proxied sites: container$(comma) URL$(comma) certificate and basic auth.')"
 	@echo "$(call format,start,'Start all containers.')"
 	@echo "$(call format,status,'Check the container status.')"
 	@echo "$(call format,stop,'Stop all project containers.')"
@@ -35,14 +36,14 @@ help:
 bash:
 	@./usr/bin/env bash
 
+cleanup:
+	@./bin/cleanup $(call args)
+
 cli:
 	@./bin/cli $(call args)
 
 docker-compose:
 	@./bin/docker-compose
-
-docker-stats:
-	@./bin/docker-stats
 
 log:
 	@./bin/log $(call args)
@@ -55,6 +56,9 @@ root:
 
 setup:
 	@./bin/setup
+
+sites:
+	@./bin/sites
 
 start:
 	@./bin/start $(call args)

@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# List the sites served by nginx-proxy: every running container on the
+# nginx-proxy network that has a VIRTUAL_HOST, one line per domain.
+#
+#   CONTAINER  container name
+#   URL        https:// when a certificate exists in certs/, http:// otherwise
+#   PORT       VIRTUAL_PORT the proxy forwards to
+#   CERT       certificate issuer (self-signed CA / Let's Encrypt) and expiry date
+#   AUTH       basic auth: "proxy" = htpasswd/<domain> in this repo,
+#              "app" = auth_basic / basic_auth enabled inside the container
+#
+# Usage: bin/sites
+
+cd "$(dirname "$0")/.." || exit 1
+
+NETWORK="nginx-proxy"
+CERTS_DIR="certs"
+HTPASSWD_DIR="htpasswd"
+
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Certificate for a domain: exact file, or a wildcard/parent domain file
+# (nginx-proxy falls back to the parent domain the same way).
+cert_file() {
+  local domain="$1"
+  local candidate="$domain"
+  while [ -n "$candidate" ]; do
+    [ -f "$CERTS_DIR/$candidate.crt" ] && { echo "$CERTS_DIR/$candidate.crt"; return 0; }
+    [[ "$candidate" == *.*.* ]] || break
+    candidate="${candidate#*.}"
+  done
+  return 1
+}
+
+cert_info() {
+  local file="$1"
+  local issuer end end_ts kind
+  issuer=$(openssl x509 -in "$file" -noout -issuer 2>/dev/null)
+  end=$(openssl x509 -in "$file" -noout -enddate 2>/dev/null | cut -d= -f2)
+  end_ts=$(date -d "$end" +%s 2>/dev/null)
+  case "$issuer" in
+    *"Let's Encrypt"*) kind="letsencrypt" ;;
+    *Self-Signed*|*nginx-proxy*) kind="self-signed" ;;
+    *) kind="other" ;;
+  esac
+  if [ -n "$end_ts" ] && [ "$end_ts" -lt "$(date +%s)" ]; then
+    printf "${RED}%s expired %s${NC}" "$kind" "$(date -d "$end" +%F)"
+  elif [ -n "$end_ts" ] && [ "$end_ts" -lt "$(( $(date +%s) + 14 * 86400 ))" ]; then
+    printf "${YELLOW}%s until %s${NC}" "$kind" "$(date -d "$end" +%F)"
+  else
+    printf "${GREEN}%s until %s${NC}" "$kind" "$(date -d "$end" +%F)"
+  fi
+}
+
+# Basic auth configured inside the container (nginx auth_basic or Caddy basic_auth, not commented out)
+app_auth() {
+  docker exec "$1" sh -c '
+    { grep -rhsE "^[[:space:]]*auth_basic[[:space:]]+[^o;]" /etc/nginx 2>/dev/null
+      grep -hsE "^[[:space:]]*basic_?auth" /etc/caddy/Caddyfile 2>/dev/null; } | head -n 1
+  ' 2>/dev/null
+}
+
+CONTAINERS=$(docker network inspect "$NETWORK" --format '{{range .Containers}}{{.Name}}{{"\n"}}{{end}}' 2>/dev/null | sort)
+if [ -z "$CONTAINERS" ]; then
+  echo "No running containers on the \"$NETWORK\" network."
+  exit 0
+fi
+
+printf "${BLUE}%-30s %-38s %-6s %-36s %s${NC}\n" "CONTAINER" "URL" "PORT" "CERT" "AUTH"
+
+while IFS= read -r container; do
+  [ -z "$container" ] && continue
+  env=$(docker inspect "$container" --format '{{range .Config.Env}}{{println .}}{{end}}')
+  hosts=$(echo "$env" | grep -E '^VIRTUAL_HOST=' | cut -d= -f2-)
+  [ -z "$hosts" ] && continue
+  port=$(echo "$env" | grep -E '^VIRTUAL_PORT=' | cut -d= -f2-)
+  app=$(app_auth "$container")
+
+  IFS=',' read -ra domains <<< "$hosts"
+  for domain in "${domains[@]}"; do
+    domain=$(echo "$domain" | xargs)
+    [ -z "$domain" ] && continue
+
+    if file=$(cert_file "$domain"); then
+      url="https://$domain"
+      cert=$(cert_info "$file")
+    else
+      url="http://$domain"
+      cert="${RED}none${NC}"
+    fi
+
+    auth=()
+    [ -f "$HTPASSWD_DIR/$domain" ] && auth+=("proxy")
+    [ -n "$app" ] && auth+=("app")
+    if [ ${#auth[@]} -eq 0 ]; then
+      auth_text="-"
+    else
+      auth_text="${YELLOW}$(IFS=,; echo "${auth[*]}")${NC}"
+    fi
+
+    # printf pads the raw text, colors are added around the padded cells
+    printf "%-30s %-38s %-6s " "$container" "$url" "${port:-80}"
+    cert_plain=$(echo -e "$cert" | sed 's/\x1b\[[0-9;]*m//g')
+    printf "%b%*s %b\n" "$cert" $((36 - ${#cert_plain})) "" "$auth_text"
+  done
+done <<< "$CONTAINERS"

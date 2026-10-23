@@ -14,11 +14,10 @@ Docker-compose for [nginx-proxy](https://github.com/nginx-proxy/nginx-proxy) whi
 This repo also includes:
  - [acme-companion](https://github.com/nginx-proxy/acme-companion)
  - [self-signed-companion](https://github.com/sebastienheyd/docker-self-signed-proxy-companion)
- - [mailcatcher](https://github.com/sj26/mailcatcher)
+ - [mailpit](https://github.com/axllent/mailpit)
  - [opensearch](https://github.com/opensearch-project)
  - [elasticsearch](https://github.com/elastic/elasticsearch)
  - [phpmyadmin](https://github.com/phpmyadmin/phpmyadmin)
- - [portainer](https://github.com/portainer/portainer)
 
 Still to come:
  - [traefik](https://github.com/traefik/traefik)
@@ -27,7 +26,7 @@ Still to come:
 
 ## Introduction
 
-This project provides a convenient wrapper for `nginx-proxy` and `acme-companion`, allowing you to easily develop multiple projects locally with virtual hosts using Docker. It is also ready for live deployment. Additionally, it includes `phpmyadmin` and `mailcatcher` for quick debugging, and a global `opensearch` instance for all projects to reduce unnecessary RAM allocation per project.
+This project provides a convenient wrapper for `nginx-proxy` and `acme-companion`, allowing you to easily develop multiple projects locally with virtual hosts using Docker. It is also ready for live deployment. Additionally, it includes `phpmyadmin` and `mailpit` for quick debugging, and a global `opensearch` instance for all projects to reduce unnecessary RAM allocation per project.
 
 ## Prerequisites
 
@@ -59,12 +58,13 @@ Use the following CLI commands:
 
 - **root**: Run any CLI command as root without going into the bash prompt.
 - **bash**: Drop into the bash prompt of your Docker container.
+- **cleanup**: Show unused networks (never the shared ones, never networks of stopped containers), dangling images, build cache and unused volumes; `bin/cleanup --force` removes them asking y/n for each network, each dangling image and the build cache (`--force --yes` without asking). Volumes are only listed.
 - **cli**: Run any CLI command without going into the bash prompt.
 - **docker-compose**: Support V1 (`docker-compose`) and V2 (`docker compose`) docker compose command, and use custom configuration files.
-- **docker-stats**: Display status for CPU, memory usage, and memory limit of currently-running Docker containers.
 - **log**: Monitor the log files. Pass no params to tail all files.
 - **restart**: Stop and then start all containers.
 - **setup**: Create the `.env` file and set the environment variables.
+- **sites**: List the sites served by the proxy (containers on the `nginx-proxy` network with a `VIRTUAL_HOST`): container, URL, port, certificate (self-signed / Let's Encrypt and expiry) and basic auth (`proxy` = `htpasswd/<domain>`, `app` = enabled inside the container).
 - **start**: Start all containers.
 - **status**: Check the container status.
 - **stop**: Stop all project containers.
@@ -88,6 +88,10 @@ The following environment variables are used in the `.env` file:
 > It is not recommended to use the `latest` (`nginxproxy/nginx-proxy`, `nginxproxy/nginx-proxy:latest`) or `alpine` (`nginxproxy/nginx-proxy:alpine`) tag for production setups.
 >
 > [Those tags point](https://hub.docker.com/r/nginxproxy/nginx-proxy/tags) to the latest commit in the `main` branch. They do not carry any promise of stability, and using them will probably put your nginx-proxy setup at risk of experiencing uncontrolled updates to non backward compatible versions (or versions with breaking changes). You should always specify the version you want to use explicitly to ensure your setup doesn't break when the image is updated.
+
+### Image versions
+
+The versions of all images are pinned in `docker-compose.yml` (ex. `${RABBITMQ_VERSION:-4.1}`), so updating a service is a change in this repository followed by `git pull` and `bin/start` on every server. `.env` can override them for one machine (`NGINX_PROXY_VERSION`, `ACME_COMPANION_VERSION`, `SELF_SIGNED_VERSION`, `MAILPIT_VERSION`, `OPENSEARCH_VERSION`, `PHPMYADMIN_VERSION`, `RABBITMQ_VERSION`, all commented out in `.env.example`). The OpenSearch image is tagged with its version, a new `OPENSEARCH_VERSION` is built automatically by the next `bin/start`.
 
 ### Compose Profiles
 
@@ -176,7 +180,7 @@ Please check the [docs section](https://github.com/nginx-proxy/nginx-proxy/tree/
 
 ### Email / Mailcatcher
 
-View emails sent locally through Mailcatcher by visiting [http://{yourdomain}:1080](http://{yourdomain}:1080). In order to use mailcatcher, set the mailserver host to `mailcatcher` and set port to `1025`. Note that this port (`1025`) is different from the mailcatcher interface to read the emails (`1080`).
+Every email sent by the projects is caught by [Mailpit](https://mailpit.axllent.org/): set the mail server host to `mailcatcher` and port `1025` (the m2docker PHP images already do it through msmtp; `mailcatcher` is a network alias of the `mailpit` container, so older projects keep working). Read the emails on the `MAILCATCHER` domain from `.env` (default `https://mail.test`). Emails are stored in the `mailpitdata` volume (last 5000).
 
 Alternative tools to test emails and get some metrics: [mailtrap](https://mailtrap.io/)
 
