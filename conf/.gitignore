@@ -1,3 +1,4 @@
 *
 !.gitignore
 !custom.conf
+!realip.conf.sample

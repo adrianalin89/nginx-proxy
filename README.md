@@ -240,6 +240,22 @@ connect ECONNREFUSED 127.0.0.1:443
 
 Still `127.0.0.1`? The container is not on the `nginx-proxy` network, or the proxy was not recreated after the change. A certificate error means the CA from step 3 is missing. Don't add the aliases by hand with `docker network connect --alias`: they are lost the next time the proxy is recreated.
 
+### Behind a WAF or load balancer (real client IP)
+
+When the server sits behind a WAF / load balancer, every request reaches the proxy from that device and the sites log its address instead of the client's. The device puts the client IP in `X-Forwarded-For`; tell nginx to trust it for that address only:
+
+1. `cp conf/realip.conf.sample conf/realip.conf`, set the device's address in `set_real_ip_from` (one line per address, ex. both nodes of an HA pair; find it in `bin/log proxy-nginx-proxy` or the access log). `conf/realip.conf` is machine specific and not committed (`conf/.gitignore`).
+2. `docker exec proxy-nginx-proxy nginx -t && docker exec proxy-nginx-proxy nginx -s reload`.
+
+The proxy now logs the client IP and sends it to the sites in `X-Real-IP`. A site's own nginx (ex. a Magento container) sees the proxy as client, so it needs the same for the proxy network:
+
+```nginx
+set_real_ip_from 172.18.0.0/16;   # subnet of the nginx-proxy network: docker network inspect nginx-proxy
+real_ip_header X-Real-IP;
+```
+
+Only trust addresses that can't be reached by clients directly, otherwise anyone can fake their IP with an `X-Forwarded-For` header.
+
 ### Email / Mailcatcher
 
 Every email sent by the projects is caught by [Mailpit](https://mailpit.axllent.org/): set the mail server host to `mailcatcher` and port `1025` (the m2docker PHP images already do it through msmtp; `mailcatcher` is a network alias of the `mailpit` container, so older projects keep working). Read the emails on the `MAILCATCHER` domain from `.env` (default `https://mail.test`). Emails are stored in the `mailpitdata` volume (last 5000).
