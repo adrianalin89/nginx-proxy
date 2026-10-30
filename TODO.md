@@ -9,6 +9,9 @@ Nothing open right now.
 
 ## Done / decided
 
+- 2026-10-30: optional, uncommitted `compose.override.yaml` (loaded by `bin/docker-compose`) for
+  proxy network aliases, so containers reach `.test` sites through the proxy (SSR). Aliases added by hand
+  with `docker network connect --alias` were lost whenever the proxy was recreated.
 - 2026-10-23: image versions are pinned in docker-compose.yml, `.env` only overrides them.
   acme / self-signed companions and phpMyAdmin stay on `latest`, RabbitMQ stays on 4.1 for
   the older projects, OpenSearch stays on 3.9.0 (projects are updated to it).

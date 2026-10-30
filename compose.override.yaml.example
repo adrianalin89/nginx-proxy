@@ -1,0 +1,16 @@
+# Machine-specific additions to docker-compose.yml. Copy to compose.override.yaml (not
+# committed); bin/docker-compose loads it when it exists. Apply with bin/start.
+#
+# Proxy network aliases: needed only when code inside a container calls another local site
+# by its .test domain over HTTPS (ex. a Next.js front rendering on the server and calling
+# https://api.myshop.test). Without an alias the container resolves the domain to 127.0.0.1,
+# i.e. to itself, and fails with ECONNREFUSED 127.0.0.1:443. With it, every container on the
+# nginx-proxy network reaches the domain through the proxy. See README, "Reach a site from
+# inside a container (SSR)".
+services:
+    proxy-nginx-proxy:
+        networks:
+            default:
+                aliases:
+                    - api.myshop.test
+                    # - api.otherproject.test

@@ -6,4 +6,8 @@ else
   DOCKER_COMPOSE="docker-compose"
 fi
 
-${DOCKER_COMPOSE} -f docker-compose.yml "$@"
+COMPOSE_FILES=(-f docker-compose.yml)
+# Machine-specific additions (ex. proxy network aliases), not committed.
+[ -f compose.override.yaml ] && COMPOSE_FILES+=(-f compose.override.yaml)
+
+${DOCKER_COMPOSE} "${COMPOSE_FILES[@]}" "$@"

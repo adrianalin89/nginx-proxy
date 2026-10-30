@@ -2,3 +2,4 @@
 /.idea
 .env
 /data
+/compose.override.yaml

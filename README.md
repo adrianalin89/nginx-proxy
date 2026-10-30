@@ -49,7 +49,8 @@ This project provides a convenient wrapper for `nginx-proxy` and `acme-companion
 ├── Makefile         # Makefile for CLI commands
 ├── .env             # Environment variables
 ├── .gitignore       # Git ignore file
-└── docker-compose.yml
+├── docker-compose.yml
+└── compose.override.yaml  # Optional, machine specific, not committed (see compose.override.yaml.example)
 ```
 
 ## CLI Commands
@@ -60,7 +61,7 @@ Use the following CLI commands:
 - **bash**: Drop into the bash prompt of your Docker container.
 - **cleanup**: Show unused networks (never the shared ones, never networks of stopped containers), dangling images, build cache and unused volumes; `bin/cleanup --force` removes them asking y/n for each network, each dangling image and the build cache (`--force --yes` without asking). Volumes are only listed.
 - **cli**: Run any CLI command without going into the bash prompt.
-- **docker-compose**: Support V1 (`docker-compose`) and V2 (`docker compose`) docker compose command, and use custom configuration files.
+- **docker-compose**: Support V1 (`docker-compose`) and V2 (`docker compose`) docker compose command; loads `docker-compose.yml` and, when present, `compose.override.yaml`.
 - **log**: Monitor the log files. Pass no params to tail all files.
 - **restart**: Stop and then start all containers.
 - **setup**: Create the `.env` file and set the environment variables.
@@ -177,6 +178,67 @@ where you want to use certs.
 ### Additional documentation
 
 Please check the [docs section](https://github.com/nginx-proxy/nginx-proxy/tree/main/docs).
+
+### Reach a site from inside a container (SSR)
+
+**When you need it.** Only when code running *inside a container* calls another local site by its `.test` domain over HTTPS. Typical case: a headless front (Next.js, Nuxt, a Node or PHP service) that renders on the server and calls the backend API of another project, ex. `https://api.myshop.test/graphql`. The browser is fine, but the server-side request fails with:
+
+```text
+connect ECONNREFUSED 127.0.0.1:443
+```
+
+**Why.** The `.test` domains point to `127.0.0.1` in the host `/etc/hosts`. Docker's resolver passes names it doesn't know to the host, so the container gets `127.0.0.1` too, and inside a container `127.0.0.1` is the container itself. Calls between containers of the *same* project (by container name, ex. `myshop-php:9000`) are not affected, and you don't need this when the calling container goes over plain HTTP to a container name.
+
+**How.** Give the proxy the called domains as network aliases on the `nginx-proxy` network. Every container on that network then resolves them to the proxy, which serves them with the usual certificate.
+
+1. In this repository, copy the sample and list the domains that are called from inside containers:
+
+   ```bash
+   cp compose.override.yaml.example compose.override.yaml
+   ```
+
+   ```yaml
+   services:
+       proxy-nginx-proxy:
+           networks:
+               default:
+                   aliases:
+                       - api.myshop.test
+                       - api.otherproject.test
+   ```
+
+   `compose.override.yaml` is machine specific and not committed; `bin/docker-compose` loads it when it exists, so the aliases survive every proxy update.
+
+2. Apply it: `bin/start` (recreates `proxy-nginx-proxy`, all sites are down for a few seconds).
+
+3. In the project that *makes* the calls, the container must be on the `nginx-proxy` network and trust the local CA (`certs/nginx-proxy-ca.crt`), ex. for a Node container:
+
+   ```yaml
+   services:
+       front-node:
+           volumes:
+               - ${PROXY_CA_CERT}:/usr/local/share/ca-certificates/proxy-ca.crt:ro
+           environment:
+               NODE_EXTRA_CA_CERTS: /usr/local/share/ca-certificates/proxy-ca.crt
+           networks:
+               - default
+               - nginx-proxy
+
+   networks:
+       nginx-proxy:
+           external: true
+   ```
+
+   with `PROXY_CA_CERT=/path/to/nginx-proxy/certs/nginx-proxy-ca.crt` in that project's `.env` (PHP / curl containers: copy the CA to `/usr/local/share/ca-certificates/` and run `update-ca-certificates`).
+
+4. Check from the calling container:
+
+   ```bash
+   docker exec <container> getent hosts api.myshop.test    # must show the proxy IP, not 127.0.0.1
+   docker exec <container> node -e "fetch('https://api.myshop.test').then(r => console.log(r.status))"
+   ```
+
+Still `127.0.0.1`? The container is not on the `nginx-proxy` network, or the proxy was not recreated after the change. A certificate error means the CA from step 3 is missing. Don't add the aliases by hand with `docker network connect --alias`: they are lost the next time the proxy is recreated.
 
 ### Email / Mailcatcher
 
