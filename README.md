@@ -264,9 +264,16 @@ Alternative tools to test emails and get some metrics: [mailtrap](https://mailtr
 
 ### PhpMyAdmin
 
-PhpMyAdmin is built into the project file. Simply open `http://localhost:8080` in a web browser.
+PhpMyAdmin runs on the `PHPMYADMIN` domain from `.env` (default `https://db.test`). Log in with the database credentials from the project's `.env`; the login form accepts any server name on the `shared-db-network` (ex. `myshop-db`).
 
-These credentials can be used to log in to PhpMyAdmin are specified in each project .env file.
+On a server without a phpMyAdmin domain (no DNS entry) publish it on port 8080 of the proxy, behind basic auth:
+
+1. `cp conf/phpmyadmin-port.conf.sample conf/phpmyadmin-port.conf`
+2. `htpasswd -c htpasswd/phpmyadmin-port <username>` (not committed)
+3. in `compose.override.yaml` (see `compose.override.yaml.example`) add the port `8080:8080` to `proxy-nginx-proxy` and, to allow only the project database, `PMA_ARBITRARY: "0"` + `PMA_HOST: <project>-db` to `phpmyadmin`
+4. `bin/start`, then open `http://<server>:8080` (basic auth first, then the database login)
+
+Never publish the phpMyAdmin container port itself (`8080:80`): it has no basic auth.
 
 ### Troubleshooting
 - **Error: SSL certificate not working**  

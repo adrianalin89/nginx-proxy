@@ -2,3 +2,4 @@
 !.gitignore
 !custom.conf
 !realip.conf.sample
+!phpmyadmin-port.conf.sample

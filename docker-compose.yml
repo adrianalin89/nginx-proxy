@@ -1,10 +1,11 @@
 # Container logs (docker json-file driver) are rotated so they can't fill the disk.
-# Tune in .env: LOG_MAX_SIZE / LOG_MAX_FILE.
+# Tune in .env: LOG_MAX_SIZE / LOG_MAX_FILE. Rotated files are gzip compressed.
 x-logging: &default-logging
     driver: json-file
     options:
         max-size: "${LOG_MAX_SIZE:-10m}"
         max-file: "${LOG_MAX_FILE:-3}"
+        compress: "true"
 
 services:
     proxy-nginx-proxy:
@@ -144,6 +145,9 @@ services:
 
     rabbitmq:
         container_name: rabbitmq
+        # Fixed node name (rabbit@rabbitmq): the data dir is per node name, without it every recreate
+        # starts with an empty broker (users and vhosts of the projects lost)
+        hostname: rabbitmq
         logging: *default-logging
         image: rabbitmq:${RABBITMQ_VERSION:-4.1}-management-alpine
         restart: unless-stopped

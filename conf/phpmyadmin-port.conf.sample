@@ -1,0 +1,31 @@
+# phpMyAdmin on a port of its own, with basic auth: for servers without a phpMyAdmin domain
+# (no DNS entry), reachable only from the internal network / VPN. See README, "PhpMyAdmin".
+#
+# 1. cp conf/phpmyadmin-port.conf.sample conf/phpmyadmin-port.conf
+# 2. htpasswd -c htpasswd/phpmyadmin-port <username>
+# 3. publish the port on the proxy in compose.override.yaml (see compose.override.yaml.example)
+#    and run bin/start
+server {
+    listen 8080;
+    server_name _;
+
+    auth_basic "phpMyAdmin";
+    auth_basic_user_file /etc/nginx/htpasswd/phpmyadmin-port;
+
+    # SQL imports
+    client_max_body_size 512m;
+
+    location / {
+        # Resolved per request (docker DNS), so the proxy still starts while phpMyAdmin is down
+        resolver 127.0.0.11 valid=30s;
+        set $phpmyadmin_upstream http://phpmyadmin:80;
+        proxy_pass $phpmyadmin_upstream;
+
+        # $http_host keeps the port, phpMyAdmin builds its links from it
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 600s;
+    }
+}

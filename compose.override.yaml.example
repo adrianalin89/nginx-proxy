@@ -14,3 +14,13 @@ services:
                 aliases:
                     - api.myshop.test
                     # - api.otherproject.test
+        # phpMyAdmin on port 8080 with basic auth, servers without a phpMyAdmin domain
+        # (conf/phpmyadmin-port.conf.sample, README "PhpMyAdmin"). Added to 80 / 443.
+        # ports:
+        #     - "8080:8080"
+
+    # phpMyAdmin limited to one database server instead of any host typed in the login form
+    # phpmyadmin:
+    #     environment:
+    #         PMA_ARBITRARY: "0"
+    #         PMA_HOST: myshop-db
