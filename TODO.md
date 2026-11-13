@@ -9,6 +9,11 @@ Nothing open right now.
 
 ## Done / decided
 
+- 2026-11-13: checked the htpasswd bypass found on omac.rpreview.ro (`/index.php` open without a
+  password). The proxy is not affected: nginx-proxy puts `auth_basic` in the only `location /` of the
+  site, so phpMyAdmin / Mailpit / RabbitMQ ask for it on every path (`conf/phpmyadmin-port.conf.sample`
+  has it at `server` level). The cause was m2docker's `default.conf` (auth inside `location /` only),
+  fixed there.
 - 2026-10-30: optional, uncommitted `compose.override.yaml` (loaded by `bin/docker-compose`) for
   proxy network aliases, so containers reach `.test` sites through the proxy (SSR). Aliases added by hand
   with `docker network connect --alias` were lost whenever the proxy was recreated.
