@@ -75,7 +75,8 @@ Use the following CLI commands:
 
 The following environment variables are used in the `.env` file:
 
-- **NGINX_PROXY_VERSION**: Version of the nginx-proxy image to use.
+- **NGINX_PROXY_VERSION**: Version of nginx-proxy (template, docker-gen, entrypoint) to use.
+- **NGINX_VERSION**: Version of the official nginx image the proxy runs on (see Image versions).
 - **ACME_COMPANION_VERSION**: Version of the acme-companion image to use.
 - **SELF_SIGNED_VERSION**: Version of the self-signed companion image to use.
 - **COMPOSE_PROFILES**: Compose profiles to use. Possible values: `acme`, `self-signed`.
@@ -93,6 +94,8 @@ The following environment variables are used in the `.env` file:
 ### Image versions
 
 The versions of all images are pinned in `docker-compose.yml` (ex. `${RABBITMQ_VERSION:-4.1}`), so updating a service is a change in this repository followed by `git pull` and `bin/start` on every server. `.env` can override them for one machine (`NGINX_PROXY_VERSION`, `ACME_COMPANION_VERSION`, `SELF_SIGNED_VERSION`, `MAILPIT_VERSION`, `OPENSEARCH_VERSION`, `PHPMYADMIN_VERSION`, `RABBITMQ_VERSION`, all commented out in `.env.example`). The OpenSearch image is tagged with its version, a new `OPENSEARCH_VERSION` is built automatically by the next `bin/start`.
+
+The proxy is built locally (`images/nginx-proxy/Dockerfile`): nginx-proxy `NGINX_PROXY_VERSION` (template, docker-gen, entrypoint, unchanged) on the official `nginx:NGINX_VERSION` image. Reason: CVE-2026-123007 and CVE-2026-123633 (HTTP/2, fixed in nginx 1.30.7 / 1.31.9) while no nginx-proxy release ships a fixed nginx yet. The image is tagged with both versions, so changing either one is built by the next `bin/start`. Once nginx-proxy releases an image with a fixed nginx, go back to `image: nginxproxy/nginx-proxy:<version>`.
 
 ### Compose Profiles
 

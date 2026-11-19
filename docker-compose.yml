@@ -11,7 +11,17 @@ services:
     proxy-nginx-proxy:
         container_name: proxy-nginx-proxy
         logging: *default-logging
-        image: nginxproxy/nginx-proxy:${NGINX_PROXY_VERSION:-1.7}
+        # nginx-proxy on a patched nginx (CVE-2026-123007 / CVE-2026-123633, fixed in nginx
+        # 1.30.7 / 1.31.9), see images/nginx-proxy/Dockerfile. Tagged with both versions:
+        # changing NGINX_PROXY_VERSION or NGINX_VERSION builds a new image on the next start.
+        # Back to `image: nginxproxy/nginx-proxy:<version>` once a release ships a fixed nginx.
+        image: nginx-proxy-nginx:${NGINX_PROXY_VERSION:-1.7}-nginx${NGINX_VERSION:-1.30.7}
+        build:
+            dockerfile: Dockerfile
+            context: images/nginx-proxy
+            args:
+                NGINX_PROXY_VERSION: ${NGINX_PROXY_VERSION:-1.7}
+                NGINX_VERSION: ${NGINX_VERSION:-1.30.7}
         restart: unless-stopped
         environment:
             ENABLE_IPV6: "true"
